@@ -31,8 +31,8 @@ function pairPlayers(p1, p2, variant, code) {
   rooms.set(code, room);
   p1.roomCode = code;
   p2.roomCode = code;
-  send(p1, { type: 'matched', color: 'white', variant, code });
-  send(p2, { type: 'matched', color: 'black', variant, code });
+  send(p1, { type: 'matched', color: 'white', variant, code, opponentName: p2.playerName || 'Игрок 2', opponentRating: p2.playerRating || 1000 });
+  send(p2, { type: 'matched', color: 'black', variant, code, opponentName: p1.playerName || 'Игрок 1', opponentRating: p1.playerRating || 1000 });
 }
 
 function cleanupClient(ws) {
@@ -58,6 +58,9 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+
+    if (msg.name) ws.playerName = String(msg.name).slice(0, 20);
+    if (msg.rating) ws.playerRating = Number(msg.rating) || 1000;
 
     if (msg.type === 'find_match') {
       cleanupClient(ws);
@@ -87,8 +90,8 @@ wss.on('connection', (ws) => {
       }
       room.black = ws;
       ws.roomCode = code;
-      send(room.white, { type: 'matched', color: 'white', variant: room.variant, code });
-      send(room.black, { type: 'matched', color: 'black', variant: room.variant, code });
+      send(room.white, { type: 'matched', color: 'white', variant: room.variant, code, opponentName: room.black.playerName || 'Игрок 2', opponentRating: room.black.playerRating || 1000 });
+      send(room.black, { type: 'matched', color: 'black', variant: room.variant, code, opponentName: room.white.playerName || 'Игрок 1', opponentRating: room.white.playerRating || 1000 });
     } else if (['roll', 'move', 'undo', 'endTurn'].includes(msg.type)) {
       const room = rooms.get(ws.roomCode);
       if (!room) return;
